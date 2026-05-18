@@ -39,6 +39,7 @@
 #include "hesai_ros_driver/Firetime.h"
 #include <sensor_msgs/Imu.h>
 #include <boost/thread.hpp>
+#include <cmath>
 #include "source_drive_common.hpp"
 
 class SourceDriver
@@ -387,12 +388,15 @@ inline sensor_msgs::Imu SourceDriver::ToRosMsg(const LidarImuData &imu_config_)
     printf("ros1 does not support timestamps greater than 19 January 2038 03:14:07 (now %lf)\n", imu_config_.timestamp);
   }
   ros_msg.header.frame_id = frame_id_;
-  ros_msg.linear_acceleration.x = (imu_config_.imu_accel_x);
-  ros_msg.linear_acceleration.y = (imu_config_.imu_accel_y);
-  ros_msg.linear_acceleration.z = (imu_config_.imu_accel_z);
-  ros_msg.angular_velocity.x = (imu_config_.imu_ang_vel_x);
-  ros_msg.angular_velocity.y = (imu_config_.imu_ang_vel_y);
-  ros_msg.angular_velocity.z = (imu_config_.imu_ang_vel_z);
+  // SDK outputs accel in g and angular rate in deg/s; ROS / FAST-LIO expect m/s^2 and rad/s.
+  static constexpr double kGToMs2 = 9.80665;
+  static constexpr double kDegToRad = M_PI / 180.0;
+  ros_msg.linear_acceleration.x = imu_config_.imu_accel_x * kGToMs2;
+  ros_msg.linear_acceleration.y = imu_config_.imu_accel_y * kGToMs2;
+  ros_msg.linear_acceleration.z = imu_config_.imu_accel_z * kGToMs2;
+  ros_msg.angular_velocity.x = imu_config_.imu_ang_vel_x * kDegToRad;
+  ros_msg.angular_velocity.y = imu_config_.imu_ang_vel_y * kDegToRad;
+  ros_msg.angular_velocity.z = imu_config_.imu_ang_vel_z * kDegToRad;
   return ros_msg;
 }
 
